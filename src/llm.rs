@@ -1,9 +1,22 @@
 use std::sync::Arc;
+use std::time::Duration;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 
 use crate::config::{LlmConfig, LlmProvider};
+
+/// Request timeout for all LLM HTTP calls, so a hung provider fails fast
+/// instead of blocking the scan indefinitely.
+const HTTP_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Build a blocking HTTP client with a request timeout applied.
+fn build_http_client() -> Result<reqwest::blocking::Client> {
+    reqwest::blocking::Client::builder()
+        .timeout(HTTP_TIMEOUT)
+        .build()
+        .context("failed to build HTTP client")
+}
 
 #[derive(Debug, Clone)]
 pub struct SuggestedPatch {
@@ -130,7 +143,7 @@ struct OpenAiResponse {
 
 impl OpenAiClient {
     pub fn new(cfg: LlmConfig) -> Result<Self> {
-        let http = reqwest::blocking::Client::new();
+        let http = build_http_client()?;
         Ok(Self { cfg, http })
     }
 }
@@ -199,7 +212,7 @@ struct AnthropicResponse {
 
 impl AnthropicClient {
     pub fn new(cfg: LlmConfig) -> Result<Self> {
-        let http = reqwest::blocking::Client::new();
+        let http = build_http_client()?;
         Ok(Self { cfg, http })
     }
 }
@@ -268,7 +281,7 @@ struct OllamaMessage {
 
 impl OllamaClient {
     pub fn new(cfg: LlmConfig) -> Result<Self> {
-        let http = reqwest::blocking::Client::new();
+        let http = build_http_client()?;
         Ok(Self { cfg, http })
     }
 }

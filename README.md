@@ -57,7 +57,7 @@ Auto-skips: `node_modules` `.git` `dist` `build` `.next`
 ## 🎬 Video Demo
 ![demo.gif](docs/images/demo.gif)
 
-# ⚡ Install
+# ⚡ Install & Upgrade
 
 ```bash
 cargo install --path .
@@ -76,7 +76,6 @@ brew upgrade image-auditor
 
 ### Linux (Debian / Ubuntu)
 ```bash
-# Download the latest .deb for your architecture
 # amd64
 curl -LO https://github.com/0franco/image-auditor/releases/latest/download/image-auditor_linux_amd64.deb
 sudo dpkg -i image-auditor_linux_amd64.deb
@@ -84,6 +83,10 @@ sudo dpkg -i image-auditor_linux_amd64.deb
 # arm64
 curl -LO https://github.com/0franco/image-auditor/releases/latest/download/image-auditor_linux_arm64.deb
 sudo dpkg -i image-auditor_linux_arm64.deb
+
+# Upgrade (re-run the install command for your architecture)
+curl -LO https://github.com/0franco/image-auditor/releases/latest/download/image-auditor_linux_amd64.deb
+sudo dpkg -i image-auditor_linux_amd64.deb
 ```
 
 # 🧪 Usage

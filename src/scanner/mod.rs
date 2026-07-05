@@ -59,6 +59,24 @@ fn should_skip(path: &Path) -> bool {
     SKIP_SEGMENTS.iter().any(|seg| s.contains(seg))
 }
 
+// Test and mock files routinely contain intentionally "wrong" `<img>` tags —
+// e.g. a `vi.mock("next/image")` / `jest.mock` stub that renders `<img {...props} />`.
+// These are false positives for a production image audit, so skip them entirely.
+const TEST_FILE_MARKERS: &[&str] = &[".test.", ".spec."];
+const TEST_DIR_NAMES: &[&str] = &["__tests__", "__mocks__", "tests", "e2e"];
+
+fn is_test_file(path: &Path) -> bool {
+    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    if TEST_FILE_MARKERS.iter().any(|m| name.contains(m)) {
+        return true;
+    }
+    path.components().any(|c| {
+        c.as_os_str()
+            .to_str()
+            .is_some_and(|seg| TEST_DIR_NAMES.contains(&seg))
+    })
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 pub fn scan_directory(root: &Path) -> Result<ScanResult> {
@@ -82,7 +100,7 @@ pub fn scan_directory(root: &Path) -> Result<ScanResult> {
             continue;
         }
 
-        if should_skip(path) {
+        if should_skip(path) || is_test_file(path) {
             continue;
         }
 
@@ -188,8 +206,25 @@ fn scan_jsx_image_component(path: &Path, lines: &[&str], issues: &mut Vec<Issue>
 
 #[cfg(test)]
 mod tests {
-    use super::{scan_file, Issue, IssueKind};
+    use super::{is_test_file, scan_file, Issue, IssueKind};
     use std::path::Path;
+
+    #[test]
+    fn test_and_mock_files_are_skipped() {
+        assert!(is_test_file(Path::new("components/events/event-detail.test.tsx")));
+        assert!(is_test_file(Path::new("src/foo.spec.ts")));
+        assert!(is_test_file(Path::new("src/__tests__/foo.tsx")));
+        assert!(is_test_file(Path::new("src/__mocks__/next/image.tsx")));
+        assert!(is_test_file(Path::new("e2e/home.ts")));
+    }
+
+    #[test]
+    fn production_files_are_not_skipped() {
+        assert!(!is_test_file(Path::new("components/hero.tsx")));
+        assert!(!is_test_file(Path::new("pages/index.html")));
+        // "latest" must not be mistaken for a ".test." marker.
+        assert!(!is_test_file(Path::new("src/latest.tsx")));
+    }
 
     fn scan(html: &str) -> Vec<Issue> {
         let root = Path::new(".");
